@@ -1,0 +1,23 @@
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+import re
+
+http_url = "https://en.tutiempo.net/climate/01-2013/ws-432950.html"
+retreived_data = requests.get(http_url).text
+
+soup = BeautifulSoup(retreived_data, "lxml")
+
+hiddenData = str(soup.find_all('style')[1])
+hiddenSpan = {}
+for group in re.findall(r'span\.(.+?)}',hiddenData):
+    class_attr = group.split('span.')[-1].split('::')[0]
+    content = group.split('"')[1]
+    hiddenSpan[class_attr] = content
+
+climate_table = str(soup.find("table", attrs={"class": "medias mensuales numspan"}))   
+for k, v in hiddenSpan.items():
+    climate_table = climate_table.replace('<span class="%s"></span>' %(k), hiddenSpan[k])
+
+
+df = pd.read_html(climate_table)[0]
